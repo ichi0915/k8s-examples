@@ -1,0 +1,11 @@
+#Version of the k8s API (String)
+apiVersion: v1(Pod, service) or apps/v1(ReplicaSet, Deployment)
+
+#Type of object we are creating (String)
+kind: Pod, service, ReplicaSet, Deployment
+
+#Data about the object, for example name, label (Dictionary)
+metadata:
+
+# Specifications about the kind of object, changes depending on the kind (Dictionary)
+spec:
