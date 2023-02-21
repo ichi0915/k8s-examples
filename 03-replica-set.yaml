@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: my-app-rs
+  labels:
+    app: my-app-rs
+    version: 1.0.0-Snapshot
+    env: dev
+
+spec:
+  template: #We put the pod we want to replicate
+    metadata:
+      name: my-app-pod
+      labels:
+        app: my-app
+        version: 1.0.0-Snapshot
+        env: dev
+    spec:
+      containers:
+        - name: nginx-container
+          image: nginx
+  replicas: 2
+  selector: #List of labels to manage(can manage pods not created by it) # Necessary on ReplicaSet
+    matchLabels:
+      env: dev

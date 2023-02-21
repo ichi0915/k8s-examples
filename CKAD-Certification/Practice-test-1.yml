@@ -1,0 +1,44 @@
+#How many pods exist in the system
+kubectl get pods
+
+#What does the READY column in the output of the kubectl get pods command indicate?
+-- Running containers in pod/amount of containers in pod
+
+# Create a new pod with the nginx image.
+kubectl run nginx --image=nginx
+
+# Get the img use in pod test
+kubectl describe pod test
+
+# Which nodes are these pods placed on?
+kubectl get pods -o wide
+
+# Create a new pod with the name redis and with the image redis123.
+# Without yml file
+kubectl run redis --image=redis123 --dry-run=client -o yaml
+kubectl run redis --image=redis123 --dry-run=client -o yaml > deployment.yml
+
+# With yml file
+vim deployment.yml
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: redis
+spec:
+  containers:
+    - name: redis
+      image: redis123
+
+kubectl apply -f deployment.yml
+kubectl create -f deployment.yaml
+
+# Now change the image on this pod to redis.
+kubectl run redis --image=redis --dry-run=client -o yaml
+kubectl run redis --image=redis --dry-run=client -o yaml > deployment.yml
+
+#Extract the definition file of a pod
+kubectl get pod <pod-name> -o yaml > pod-definition.yaml
+
+#Edit pod properties.
+kubectl edit pod <pod-name>
