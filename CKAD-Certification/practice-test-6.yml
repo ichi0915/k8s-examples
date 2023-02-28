@@ -1,0 +1,29 @@
+#What is the environment variable name set on the container in the pod?
+APP_COLOR
+
+# Update the environment variable on the POD to display a green background
+kubectl get pod/webapp-color -o yaml > webapp-color.yml
+# vim, delete, apply
+
+# Identify the database host from the config map db-config
+kubectl describe configmaps/db-config
+
+# Create a new ConfigMap for the webapp-color POD. Use the spec given below.
+# kubectl create configmap webapp-config-map --from-literal=APP_COLOR=darkblue
+kubectl create cm webapp-config-map --from-literal=APP_COLOR=darkblue
+
+# Update the environment variable on the POD to use the newly created ConfigMap
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    name: webapp-color
+  name: webapp-color
+  namespace: default
+spec:
+  containers:
+  - envFrom:
+    - configMapRef:
+         name: webapp-config-map
+    image: kodekloud/webapp-color
+    name: webapp-color
