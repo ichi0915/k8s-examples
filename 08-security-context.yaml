@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ubuntu-pod
+spec:
+  # This is at pod level
+  securityContext:
+    # Change the default user to be 1000 instead of root
+    runAsUser: 1000
+  containers:
+  - name: ubuntu
+    image: ubuntu
+    command: ["sleep", "1200"]
+    # This is at container level
+    securityContext:
+      # Change the default user to be 10 instead of 1000
+      runAsUser: 10
+      # capabilities are only supported at container level (NOT at pod level)
+      capabilities:
+        add: ["MAC_ADMIN"]

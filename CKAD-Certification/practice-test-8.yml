@@ -1,0 +1,54 @@
+# What is the user used to execute the sleep process within the ubuntu-sleeper pod?
+kubectl exec ubuntu-sleeper -- whoami
+# root
+
+# Edit the pod ubuntu-sleeper to run the sleep process with user ID 1010.
+kubectl get pod/ubuntu-sleeper -o yaml > deploy.yml
+# Vim edit YML
+spec:
+  securityContext:
+    runAsUser: 1010
+# delete, apply
+kubectl delete -f deploy.yml
+kubectl apply -f deploy.yml
+
+# A Pod definition file named multi-pod.yaml is given. With what user are the processes in the web container started?
+cat multi-pod.yaml
+# apiVersion: v1
+# kind: Pod
+# metadata:
+#   name: multi-pod
+# spec:
+#   securityContext:
+#     runAsUser: 1001
+#   containers:
+#   -  image: ubuntu
+#      name: web
+#      command: ["sleep", "5000"]
+#      securityContext:
+#       runAsUser: 1002
+
+#   -  image: ubuntu
+#      name: sidecar
+#      command: ["sleep", "5000"]
+Answer 1002
+# With what user are the processes in the sidecar container started?
+Answer 1001
+
+# Update pod ubuntu-sleeper to run as Root user and with the SYS_TIME capability.
+vim edit YML
+# spec:
+#   containers:
+#   - command:
+#     - sleep
+#     - "4800"
+#     image: ubuntu
+#     name: ubuntu-sleeper
+#     securityContext:
+#       capabilities:
+#         add: ["SYS_TIME"]
+
+# Now update the pod to also make use of the NET_ADMIN capability.
+vim
+# add: ["SYS_TIME", "NET_ADMIN"]
+

@@ -1,0 +1,26 @@
+# How many Service Accounts exist in the default namespace?
+kubectl get sa
+
+# What is the secret token used by the default service account?
+kubectl describe sa default
+
+# We just deployed the Dashboard application. Inspect the deployment. What is the image used by the deployment?
+kubectl get all
+kubectl describe deployment.apps/web-dashboard
+
+# Inspect the Dashboard Application POD and identify the Service Account mounted on it.
+kubectl describe pod/XXXX
+
+# At what location is the ServiceAccount credentials available within the pod?
+/var/run/secrets
+
+# The application needs a ServiceAccount with the Right permissions to be created to authenticate to Kubernetes. The default ServiceAccount has limited access. Create a new ServiceAccount named dashboard-sa.
+kubectl create sa dashboard-sa
+
+# Create an authorization token for the newly created service account
+kubectl create token dashboard-sa
+
+# Edit the deployment to change ServiceAccount from default to dashboard-sa.
+kubectl get pod -o yaml > deployment.yml
+# vim, delete, apply
+

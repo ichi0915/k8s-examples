@@ -1,0 +1,25 @@
+#How many Secrets exist on the system?
+kubectl get secrets
+
+#How many secrets are defined in the dashboard-token secret?
+kubectl describe secrets/dashboard-token
+# Check under Data
+
+# What is the type of the dashboard-token secret?
+kubectl describe secret
+# Check Type:
+
+# Create a new secret named db-secret with the data given below.
+# Secret Name: db-secret
+# Secret 1: DB_Host=sql01
+# Secret 2: DB_User=root
+# Secret 3: DB_Password=password123
+kubectl create secret generic db-secret --from-literal=DB_Host=sql01 --from-literal=DB_User=root --from-literal=DB_Password=password123
+
+# Configure webapp-pod to load environment variables from the newly created secret.
+kubectl get pod webapp-pod -o yaml > webapp-pod.yml
+# vim
+envFrom:
+      - secretRef:
+          name: db-secret
+# delete, apply
