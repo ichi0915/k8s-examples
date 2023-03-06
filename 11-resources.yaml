@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-app-pod
+spec:
+  # If you add the limit here is a default for the whole POD
+  limits:
+  - default:
+      memory: 512Mi
+      cpu: 1
+    defaultRequest:
+      memory: 256Mi
+      cpu: 0.5
+    type: Container
+
+  containers:
+    - name: nginx-container
+      image: nginx
+      # The amount of resources this container needs to start
+      resources:
+        requests:
+          memory: '1Gi'
+          cpu: 1   # == 1 vCPU/core/hyperthread
+          # Mem
+          # 1ki (kibibyte) = 1,024 bytes
+          # 1K (kilobite) = 1,000 bytes
+          # cpu
+          # 0.1 == 100m
+          # 0.01 == 1m   #Lowest
+        limits:
+          memory: '2Gi'
+          cpu: 2
+          # Incase of exceding cpu k8s Throttle
+          # Incase of exceding memory constantly k8s Terminates the pod
+          # It can use more memory but not all the time

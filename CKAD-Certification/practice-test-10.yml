@@ -1,0 +1,71 @@
+# Create a taint on node01 with key of spray, value of mortein and effect of NoSchedule
+kubectl taint nodes node01 spray=mortein:NoSchedule
+
+# Create a new pod with the nginx image and pod name as mosquito.
+kubectl run mosquito --image=nginx --dry-run=client -o yaml > deploy.yml
+kubectl apply -f deploy.yml
+
+# What is the state of the POD?
+Pending
+
+# Why do you think the pod is in a pending state?
+Missing mortein taint
+
+# Create another pod named bee with the nginx image, which has a toleration set to the taint mortein.
+kubectl run bee --image=nginx --dry-run=client -o yaml > beeDeploy.yml
+vim beeDeploy.yml
+# under spec
+  tolerations:
+    - key: "spray"
+      value: "mortein"
+      effect: "NoSchedule"
+      operator: "Equal"
+
+# Check if controlplane has any taint
+kubectl describe node/controlplane | grep Taints
+
+# Remove the taint on controlplane, which currently has the taint effect of NoSchedule.
+kubectl taint nodes controlplane node-role.kubernetes.io/control-plane:NoSchedule-
+
+
+# === Different Tests
+
+# How many Labels exist on node node01?
+kubectl describe node/node01
+
+# Apply a label color=blue to node node01
+kubectl label node node01 color=blue
+
+# Create a new deployment named blue with the nginx image and 3 replicas.
+kubectl create deployment blue --image=nginx --replicas=3 -o yaml > deployment-3.yml
+
+# Which nodes can the pods for the blue deployment be placed on?
+kubectl describe node/controlplane | grep Taints
+kubectl describe node/node01 | grep Taints
+
+# Set Node Affinity to the deployment to place the pods on node01 only.
+# Under spec of the container
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: color
+            operator: In
+            values:
+            - blue
+
+# Which nodes are the pods placed on now?
+kubectl describe pod/blue-7cf59b987f-6m4dz | grep Node
+
+# Create a new deployment named red with the nginx image and 2 replicas, and ensure it gets placed on the controlplane node only.
+# Use the label key - node-role.kubernetes.io/control-plane - which is already set on the controlplane node.
+kubectl create deployment red --image=nginx --replicas=2 -o yaml > red.yml
+# Under spec of the container
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: node-role.kubernetes.io/control-plane
+                operator: Exists

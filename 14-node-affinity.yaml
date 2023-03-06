@@ -1,0 +1,32 @@
+#First we Label a node
+# kubectl label node node-1 size=Large
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-app-pod
+spec:
+  affinity:
+    nodeAffinity:
+      # 3 different affinity types
+      # requiredDuringSchedulingRequiredDuringExecution:
+      # preferredDuringSchedulingIgnoredDuringExecution:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          # If the key size has the value of Large
+          - key: size
+            operator: In
+            values:
+            - Large
+          # If the key size does not has the value of Small
+          - key: size
+            operator: NotIn
+            values:
+            - Small
+          # If the key size exists it can use that node, no need to specify the value
+          - key: size
+            operator: Exists
+  containers:
+    - name: nginx-container
+      image: nginx
