@@ -1,0 +1,22 @@
+# Identify the number of containers created in the red pod.
+kubectl get pods
+
+# Identify the name of the containers running in the blue pod.
+kubectl describe pod/blue
+
+# Create a multi-container pod with 2 containers. If the pod goes into the crashloopbackoff then add the command sleep 1000 in the lemon container.
+kubectl run lemon --image=busybox -o yaml > deploy.yml
+# vim add second container
+
+# The application outputs logs to the file /log/app.log. View the logs and try to identify the user having issues with Login.
+kubectl exec app -- cat /log/app.log
+
+# Edit the pod to add a sidecar container to send logs to Elastic Search. Mount the log volume to the sidecar container. Use the spec provided below.
+kubectl get pod/app -o yaml > app.yml
+# vim
+- image: kodekloud/filebeat-configured
+    name: sidecar
+    volumeMounts:
+    - mountPath: /var/log/event-simulator/
+      name: log-volume
+

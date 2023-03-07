@@ -1,0 +1,26 @@
+# Sidecar pattern:
+# When a container lives along side another and send info to a server
+# Example: log system along side a MS, container A need container B to send logs
+
+# Adapter pattern:
+# When a container lives along side another and is use to modify the data before sending the info to another server
+# Example: log system along side a MS but it transforms the data, container A need container B to send logs and transform the data
+
+# Ambassador pattern
+# When a container lives along side another have different logic depending on settings
+# Example: we have container A that wants to talk to a DB but instead of talking directly to the DBs it talks with container B, B the switches between DBs
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-app-pod
+spec:
+  containers:
+    - name: nginx-container
+      image: nginx
+      ports:
+        - containerPort: 8080
+    - name: nginx-container
+      image: nginx
+      ports:
+        - containerPort: 8081
