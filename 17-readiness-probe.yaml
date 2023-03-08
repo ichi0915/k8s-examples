@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-app-pod
+spec:
+  containers:
+    - name: nginx-container
+      image: nginx
+      # Now when the container is created k8s does not immediately change the status
+      #  to running, perfoms a test and waits until the path /api/readiness on port 8080 answers
+      readinessProbe:
+        # For HTPP probe/test
+        httpGet:
+          path: /api/readiness
+          port: 8080
+        # For TCP probe/test
+        tcpSocket:
+          port: 8080
+        # Executes a command in the container
+        exec:
+          command:
+            - "cat"
+            - /home/file.txt
+        # Aditional delay before sending the probe
+        initialDelaySeconds: 20
+        # How often to send the probe
+        periodSeconds: 5
+        # By default after 3 attempts if the app is not ready it will stop the probe
+        failureThreshold: 8

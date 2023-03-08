@@ -27,4 +27,3 @@ initContainers:
       - sh
       - -c
       - sleep 20
-

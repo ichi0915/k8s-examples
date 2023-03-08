@@ -19,4 +19,3 @@ kubectl get pod/app -o yaml > app.yml
     volumeMounts:
     - mountPath: /var/log/event-simulator/
       name: log-volume
-
