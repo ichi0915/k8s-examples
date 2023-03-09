@@ -1,0 +1,37 @@
+# Update the newly created pod 'simple-webapp-2' with a readinessProbe using the given spec
+kubectl get pod/simple-webapp-2 -o yaml > deploy.yml
+# vim
+    readinessProbe:
+      httpGet:
+        path: /ready
+        port: 8080
+# Delete, Apply
+
+# What would happen if the application inside container on one of the PODs crashes?
+The container inside the pod is restarted
+# When the application crashes, the container is restarted. During this period the service directs users to the available POD, since the POD status is not READY.
+
+# What would happen if the application inside container on one of the PODs freezes?
+Users are impacted
+
+# Update both the pods with a livenessProbe using the given spec
+    livenessProbe:
+      httpGet:
+        path: /live
+        port: 8080
+      initialDelaySeconds: 80
+      periodSeconds: 1
+    readinessProbe:
+      httpGet:
+        path: /ready
+        port: 8080
+
+# == Different practice but short, this is for loging
+
+# A user - USER5 - has expressed concerns accessing the application. Identify the cause of the issue.
+#Inspect the logs of the POD
+k logs -f pod/webapp-1
+
+# A user is reporting issues while trying to purchase an item. Identify the user and the cause of the issue.
+# Inspect the logs of the webapp in the POD
+k logs -f pod/webapp-2
