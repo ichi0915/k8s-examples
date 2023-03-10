@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-app-pod
+  # Labels can be used to select objects and to find collections of objects that satisfy certain conditions
+  labels: #We use this to group or tag the object
+    app: my-app
+    version: 1.0.0-Snapshot
+    env: dev
+  # Annotations are not used to identify and select objects
+  annotations: #We use this to record informative details
+    buildVersion: "1.04"
+spec:
+  containers:
+    - name: nginx-container
+      image: nginx

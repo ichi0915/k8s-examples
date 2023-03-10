@@ -1,0 +1,12 @@
+# We have deployed a number of PODs. They are labelled with tier, env and bu. How many PODs exist in the dev environment (env)?
+kubectl get pods --selector env=dev
+
+# How many PODs are in the finance business unit (bu)?
+kubectl get pods --selector bu
+
+# How many objects are in the prod environment including PODs, ReplicaSets and any other objects?
+kubectl get all --selector env=prod
+kubectl get all --selector env=prod --no-headers | wc -l
+
+# Identify the POD which is part of the prod environment, the finance BU and of frontend tier?
+kubectl get all --selector env=prod,bu=finance,tier=frontend
