@@ -1,0 +1,30 @@
+# Inspect the deployment and identify the current strategy
+kubectl describe deployment.apps/frontend | grep Strategy
+
+# If you were to upgrade the application now what would happen?
+PODs are upgraded few at a time
+
+# Let us try that. Upgrade the application by setting the image on the deployment to kodekloud/webapp-color:v2
+kubectl edit deployment.apps/frontend
+
+# Up to how many PODs can be down for upgrade at a time, Consider the current strategy settings and number of PODs - 4
+1
+
+# Change the deployment strategy to Recreate
+kubectl edit deployment.apps/frontend
+# From this
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+# To this
+  strategy:
+    type: Recreate
+
+# Upgrade the application by setting the image on the deployment to kodekloud/webapp-color:v3
+kubectl edit deployment.apps/frontend
+
+# Extra commands
+kubectl rollout status deployment.apps/frontend
+controlplane ~ ✖ kubectl rollout history deployment.apps/frontend

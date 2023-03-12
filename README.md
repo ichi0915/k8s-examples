@@ -3,6 +3,10 @@
 
 This repo has some kubernetes config files use to study for the Kubernetes Certified Application Developer (CKAD)
 
+# Questions
+
+[Medium CKAD Questions](https://medium.com/bb-tutorials-and-thoughts/practice-enough-with-these-questions-for-the-ckad-exam-2f42d1228552)
+
 ## Common/Useful commands:
 
 Get all the pods, services, statefulsets, etc.

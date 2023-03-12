@@ -1,0 +1,52 @@
+# A pod definition file named throw-dice-pod.yaml is given. The image throw-dice randomly returns a value between 1 and 6.
+# 6 is considered success and all others are failure. Try deploying the POD and view the POD logs for the generated number.
+kubectl create -f throw-dice-pod.yaml
+kubectl logs pod/throw-dice-pod
+
+# Create a Job using this POD definition file or from the imperative command and look at how many attempts does it take to get a '6'.
+kubectl create job throw-dice-job --image kodekloud/throw-dice -o yaml > throw-dice-job.yml
+# kubectl create job throw-dice-job --image=kodekloud/throw-dice --dry-run=client -o yaml > throw-dice-job.yaml
+
+# Monitor and wait for the job to succeed. Throughout this practice test remember to increase the 'BackOffLimit'
+# to prevent the job from quitting before it succeeds.
+kubectl describe job/throw-dice-job | grep Statuses
+
+# Update the job definition to run as many times as required to get 3 successful 6's.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: throw-dice-job
+spec:
+  backoffLimit: 25
+  completions: 3
+  parallelism: 3
+  template:
+    spec:
+      containers:
+      - name: throw-dice
+        image: kodekloud/throw-dice
+      restartPolicy: Never
+
+# How many attempts it took to complete the job
+kubectl describe job/throw-dice-job | grep Status
+
+# Let us now schedule that job to run at 21:30 hours every day.
+kubectl create cronjob throw-dice-cron-job --image=kodekloud/throw-dice --schedule="30 21 * * *" --dry-run=client -o yaml > throw-dice-cronJob.yml
+
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: throw-dice-cron-job
+spec:
+  schedule: "30 21 * * *"
+  jobTemplate:
+    spec:
+      completions: 3
+      parallelism: 3
+      backoffLimit: 25 # This is so the job does not quit before it succeeds.
+      template:
+        spec:
+          containers:
+          - name: throw-dice
+            image: kodekloud/throw-dice
+          restartPolicy: Never
