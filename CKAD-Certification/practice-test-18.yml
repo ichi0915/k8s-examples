@@ -1,0 +1,53 @@
+# How many Services exist on the system?
+kubectl get services
+
+#this is the default k8s services that it creates at the start
+# service/kubernetes
+
+# What is the type of the default kubernetes service?
+ClusterIP
+
+# What is the targetPort configured on the kubernetes service?
+# How many labels are configured on the kubernetes service?
+# How many Endpoints are attached on the kubernetes service?
+kubectl describe service/kubernetes
+
+# How many Deployments exist on the system now?
+kubectl get deployments
+
+# What is the image used to create the pods in the deployment?
+kubectl describe deployment/simple-webapp-deployment
+
+# Create a new service to access the web application using the service-definition-1.yaml file.
+cat service-definition-1.yaml
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: 
+  namespace: default
+spec:
+  ports:
+  - nodePort: 
+    port: 
+    targetPort: 
+  selector:
+    name: 
+  type: 
+# vim
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: webapp-service
+  namespace: default
+spec:
+  ports:
+  - nodePort: 30080
+    port: 8080
+    targetPort: 8080
+  selector:
+    name: simple-webapp
+  type: NodePort
+
+kubectl apply -f service-definition-1.yaml

@@ -1,0 +1,42 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nginx-ingress-controller
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    # nginx.ingress.kubernetes.io/rewrite-target: /$1  #Same as above
+spec:
+  rules:
+  - host: luyusteahouse.com # the host is not require but if you have multiple host it is
+    http:
+      paths:
+      # Traffic that is sent to luyusteahouse.com/store will be directed to the service store-service on port 8080
+      - path: /store
+        pathType: Prefix
+        backend:
+          service:
+            name: store-service
+            port:
+              number: 8080
+      # Traffic that is sent to luyusteahouse.com/v2 will be directed to the service hello-v2 on port 8080
+      - path: /v2
+        pathType: Prefix
+        backend:
+          service:
+            name: hello-v2
+            port:
+              number: 8080
+
+  # Multiple DNS records can be pointed at the same public IP address used for our LoadBalancer service.
+  # We can use a different ingress resource per host, which allows us to control traffic with multiple hostnames,
+  #   while using the same external IP for A Record creation.
+  - host: blog.luyusteahouse.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: blog-luyus
+            port:
+              number: 8080

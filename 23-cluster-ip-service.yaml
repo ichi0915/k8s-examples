@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-back-end-service
+spec:
+  # Use create a virtual IP inside the cluster to enable communication internally between pods
+  # ClusterIP is the default type for Services
+  type: ClusterIP
+  selector:
+    app: my-back-end-app
+    version: 1.0.0-Snapshot
+    env: dev
+  ports:
+    - port: 80        # Where the service is expose
+      targetPort: 80  # Where the backend is expose
