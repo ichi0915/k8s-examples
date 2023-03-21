@@ -1,0 +1,17 @@
+There are different types of volumes supported by Kubernetes.
+A number of cloud providers and storage vendors have built their storage plugins to support the Kubernetes Infrastructure.
+Explore the different types of volumes listed here https://kubernetes.io/docs/concepts/storage in this quiz.
+
+# What type of volume is used to mount a Microsoft Azure Data Disk into a Pod?
+# Reference: https://kubernetes.io/docs/concepts/storage/#types-of-volumes
+azureDisk
+
+# What volume type is to be used to mount a directory from the node on which the pod is running?
+hostPath
+
+# What volume type is used to store data in a Pod only as long as that Pod is running on that node?
+#   When the Pod is deleted the files are to be deleted as well.
+emptyDir
+
+# What is the fc volume type used for?
+To mount an existing fiber channel volume into a pod

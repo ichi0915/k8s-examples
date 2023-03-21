@@ -1,0 +1,62 @@
+# By default if we don't have a NetworkPolicy our pods have the default value of "All Allow"
+# Once we create and attach a network policy we only allow traffic described in the Ingress/Egress policyTypes
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: db-policy
+  # Only allow Ingress and Egress from the prod ns
+  namespace: prod
+spec:
+  podSelector:
+    matchLabels:
+      # We search for pods with the role DB and apply the policy to them
+      role: db
+  # In this section we need to add Ingress and/or Egress to override the new "All Block" value
+  policyTypes:
+    # Here we are telling the policy to override the default Block value
+    - Ingress
+    # Here we commented Egress so the policy down below is not use and we are blocking all Egress traffic
+    # - Egress
+  ingress:
+    - from:
+        # Here we can specify individual rules or specify them in groups, for example this is a group:
+        # Here to allow traffic it must meet both of this criteria, works like an AND operator
+        # This is the correct way to setup the DB
+        # - namespaceSelector:
+        #     matchLabels:
+        #       project: staging
+        #   podSelector:
+        #     matchLabels:
+        #       role: api-pod
+        # Everything else below this is not on a group but can be grouped
+
+        # Allows you to specify a range of ip addresses from which to allow incoming traffic
+        - ipBlock:
+            cidr: 172.17.0.0/16
+            # we allow the range from 172.17.0.0 to 172.17.0.16, except 172.17.1.24
+            except:
+              - 172.17.1.0/24
+        # Also allow incoming traffic from all the pods on the prod and staging nameSpaces
+        - namespaceSelector:
+            matchLabels:
+              project: staging
+        # To allow incoming only from the API pod on the same namespaces
+        - podSelector:
+            matchLabels:
+              role: api-pod
+      # To allow incoming only to this port
+      ports:
+        - protocol: TCP
+          port: 3306
+
+
+  # This is not used
+  egress:
+    - to:
+        # We can make calls to this IP
+        - ipBlock:
+            cidr: 10.0.0.0/24
+        # Output of request from this port
+      ports:
+        - protocol: TCP
+          port: 5978

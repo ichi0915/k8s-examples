@@ -1,0 +1,113 @@
+# Which namespace is the Ingress Controller deployed in?
+kubectl get all -A
+
+# What is the name of the Ingress Controller Deployment?
+kubectl get all -n ingress-nginx
+
+# Which namespace is the Ingress Resource deployed in?
+kubectl get ingress --all-namespaces
+
+# What is the Host configured on the Ingress Resource?
+# What backend is the /wear path on the Ingress configured with?
+# At what path is the video streaming application made available on the Ingress?
+kubectl describe ingress/ingress-wear-watch -n app-space
+
+# You are requested to change the URLs at which the applications are made available.
+kubectl get ingress/ingress-wear-watch -n app-space -o yaml > ingres.yml
+# vim, delete, apply
+
+# You are requested to add a new path to your ingress to make the food delivery application available to your customers.
+# vim ingres.yml and append
+      - backend:
+          service:
+            name: food-service
+            port:
+              number: 8080
+        path: /eat
+        pathType: Prefix
+# delete, apply
+
+# A new payment service has been introduced. Since it is critical, the new application is deployed in its own namespace.
+# Identify the namespace in which the new application is deployed.
+kubectl get ns
+kubectl get all -A
+
+# You are requested to make the new application available at /pay.
+# Identify and implement the best approach to making this application available on the ingress controller and test to make sure its working.
+# Look into annotations: rewrite-target as well.
+kubectl create ingress pay-service-ingress --rule="/pay=pay-service:8282" -n critical-space -o yaml > pay-service-ingress.yml
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  creationTimestamp: "2023-03-20T19:24:21Z"
+  generation: 1
+  name: pay-service-ingress
+  namespace: critical-space
+  resourceVersion: "2969"
+  uid: 71b7cd7c-90ca-43ce-9474-92902346a818
+spec:
+  rules:
+  - http:
+      paths:
+      - backend:
+          service:
+            name: pay-service
+            port:
+              number: 8282
+        path: /pay
+        # pathType: Exact
+        pathType: Prefix
+status:
+  loadBalancer: {}
+
+
+# === Extra ===
+
+# rewrite-target example
+
+# We want to achieve this:
+http://<ingress-service>:<ingress-port>/watch --> http://<watch-service>:<port>/
+
+# Without the rewrite-target option, this is what would happen:
+http://<ingress-service>:<ingress-port>/watch --> http://<watch-service>:<port>/watch
+
+Our apps don't have /watch or /wear, we want to go to /
+
+# So this si what we do
+
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: test-ingress
+  namespace: critical-space
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /watch
+        backend:
+          serviceName: watch-service
+          servicePort: 8282
+
+
+# Another example
+
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+  name: rewrite
+  namespace: default
+spec:
+  rules:
+  - host: rewrite.bar.com
+    http:
+      paths:
+      - backend:
+          serviceName: http-svc
+          servicePort: 80
+        path: /something(/|$)(.*)

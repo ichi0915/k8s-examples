@@ -1,0 +1,195 @@
+# The practice is to create the following:
+img/practice-test-20.png
+
+# Let us now deploy an Ingress Controller. First, create a namespace called ingress-nginx.
+# We will isolate all ingress related objects into its own namespace.
+kubectl create ns ingress-nginx
+
+# The NGINX Ingress Controller requires a ConfigMap object.
+# Create a ConfigMap object with name ingress-nginx-controller in the ingress-nginx namespace.
+kubectl create configmap ingress-nginx-controller --dry-run=client -n ingress-nginx -o yaml > ingress-config-map.yml
+kubectl apply -f ingress-config-map.yml
+
+# The NGINX Ingress Controller requires two ServiceAccounts.
+# Create both ServiceAccount with name ingress-nginx and ingress-nginx-admission in the ingress-nginx namespace.
+kubectl create serviceaccount ingress-nginx -n ingress-nginx
+kubectl create serviceaccount ingress-nginx-admission -n ingress-nginx
+
+# We have created the Roles and RoleBindings for the ServiceAccount. Check it out!!
+kubectl describe sa ingress-nginx -n ingress-nginx
+kubectl describe sa ingress-nginx-admission -n ingress-nginx
+
+# Let us now deploy the Ingress Controller. Create the Kubernetes objects using the given file.
+# The Deployment and it's service configuration is given at /root/ingress-controller.yaml.
+kubectl apply -f ingress-controller.yaml
+
+# This is the final YML
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/instance: ingress-nginx
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/part-of: ingress-nginx
+    app.kubernetes.io/version: 1.1.2
+    helm.sh/chart: ingress-nginx-4.0.18
+  name: ingress-nginx-controller
+  # name: ingress-controller
+  namespace: ingress-nginx
+spec:
+  minReadySeconds: 0
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: controller
+      app.kubernetes.io/instance: ingress-nginx
+      app.kubernetes.io/name: ingress-nginx
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: controller
+        app.kubernetes.io/instance: ingress-nginx
+        app.kubernetes.io/name: ingress-nginx
+    spec:
+      containers:
+      - args:
+        - /nginx-ingress-controller
+        - --publish-service=$(POD_NAMESPACE)/ingress-nginx-controller
+        - --election-id=ingress-controller-leader
+        - --watch-ingress-without-class=true
+        - --default-backend-service=app-space/default-http-backend
+        - --controller-class=k8s.io/ingress-nginx
+        - --ingress-class=nginx
+        - --configmap=$(POD_NAMESPACE)/ingress-nginx-controller
+        - --validating-webhook=:8443
+        - --validating-webhook-certificate=/usr/local/certificates/cert
+        - --validating-webhook-key=/usr/local/certificates/key
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: LD_PRELOAD
+          value: /usr/local/lib/libmimalloc.so
+        image: k8s.gcr.io/ingress-nginx/controller:v1.1.2@sha256:28b11ce69e57843de44e3db6413e98d09de0f6688e33d4bd384002a44f78405c
+        imagePullPolicy: IfNotPresent
+        lifecycle:
+          preStop:
+            exec:
+              command:
+              - /wait-shutdown
+        livenessProbe:
+          failureThreshold: 5
+          httpGet:
+            path: /healthz
+            port: 10254
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        name: controller
+        ports:
+        - name: http
+          containerPort: 80
+          protocol: TCP
+        - containerPort: 443
+          name: https
+          protocol: TCP
+        - containerPort: 8443
+          name: webhook
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /healthz
+            port: 10254
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources:
+          requests:
+            cpu: 100m
+            memory: 90Mi
+        securityContext:
+          allowPrivilegeEscalation: true
+          capabilities:
+            add:
+            - NET_BIND_SERVICE
+            drop:
+            - ALL
+          runAsUser: 101
+        volumeMounts:
+        - mountPath: /usr/local/certificates/
+          name: webhook-cert
+          readOnly: true
+      dnsPolicy: ClusterFirst
+      nodeSelector:
+        kubernetes.io/os: linux
+      serviceAccountName: ingress-nginx
+      terminationGracePeriodSeconds: 300
+      volumes:
+      - name: webhook-cert
+        secret:
+          secretName: ingress-nginx-admission
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  labels:
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/instance: ingress-nginx
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/part-of: ingress-nginx
+    app.kubernetes.io/version: 1.1.2
+    helm.sh/chart: ingress-nginx-4.0.18
+  name: ingress-nginx-controller
+  #name: ingress-controller
+  namespace: ingress-nginx
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 80
+    nodePort: 30080
+  selector:
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/instance: ingress-nginx
+    app.kubernetes.io/name: ingress-nginx
+  type: NodePort
+
+
+# Create the ingress resource to make the applications available at /wear and /watch on the Ingress service.
+# Also, make use of rewrite-target annotation field: -
+#     nginx.ingress.kubernetes.io/rewrite-target: /
+# Ingress resource comes under the namespace scoped, so don't forget to create the ingress in the app-space namespace
+kubectl get all -n app-space
+
+# To create one from scratch
+kubectl create ingress ingress-resource -n app-space \
+--rule="/watch=video-service:8080" \
+--rule="/wear=wear-service:8080" \
+--annotation ingress.annotation1=foo \
+--default-backend=default-http-backend:80 \
+--dry-run=client -o yaml > ingress-nginx.yml
+
+# Don't know how to add
+# --annotation nginx.ingress.kubernetes.io/rewrite-target: / \
+
+# vim change
+ingress.annotation1: foo
+# to
+nginx.ingress.kubernetes.io/rewrite-target: /
+# Then
+kubectl apply -f ingress-nginx.yml

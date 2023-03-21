@@ -1,0 +1,47 @@
+# How many network policies do you see in the environment?
+kubectl get networkPolicies -A
+
+# What type of traffic is this Network Policy configured to handle?
+kubectl describe networkPolicy/payroll-policy
+
+# Create a network policy to allow traffic from the Internal application only to the payroll-service and db-service.
+google: https://kubernetes.io/docs/concepts/services-networking/network-policies/
+
+# vim network-policy.yml
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: internal-policy
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      name: internal
+  policyTypes:
+  - Egress
+  - Ingress
+  ingress:
+    - {}
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          name: mysql
+    ports:
+    - protocol: TCP
+      port: 3306
+
+  - to:
+    - podSelector:
+        matchLabels:
+          name: payroll
+    ports:
+    - protocol: TCP
+      port: 8080
+
+  - ports:
+    - port: 53
+      protocol: UDP
+    - port: 53
+      protocol: TCP

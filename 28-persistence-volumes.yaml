@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-vol1
+spec:
+  storageClassName: ""
+  # ClaimRef is a bi-directional binding between the PersistentVolume and the PersistentVolumeClaim.
+  claimRef:
+    name: prod-pvc
+    namespace: prod
+  # How to mount it on the host
+  accessModes:
+    - ReadWriteOnce
+    # - ReadOnlyMany
+    # - ReadWriteMany
+  capacity:
+    storage: 1Gi
+  # What happens when the volume is claim, then freed and then reclaim by another pod
+  persistentVolumeReclaimPolicy: Retain       #It will remain until someone deletes it, and cannot be use by any other claim -- default value
+  # persistentVolumeReclaimPolicy: Deleted        #Auto delete
+  # persistentVolumeReclaimPolicy: Recycle        #The data will be deleted and then make the PersistentVolume available to get another claim
+
+  # === Next set the volume type ===
+
+  # Volume type for node storage
+  # hostPath:
+  #   path: /tmp/data
+
+  # Volume type for AWS
+  # awsElasticBlockStore:
+  #   volumeID: "<volume id>"
+  #   fsType: ext4
+
+  # Volume type for PVC
+  persistentVolumeClaim:
+     claimName: "<claim name>"

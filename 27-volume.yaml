@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: random-num-gen
+spec:
+  containers:
+  - image: alpine
+    name: alpine
+    command: ["/bin/sh", "-c"]
+    # Generate a random number and save it to /opt/number.out
+    args: ["shuf -i 0-100 -n 1 >> /opt/number.out;"]
+    # We specify that the directory opt will be mounted on the data-volume volume
+    volumeMounts:
+    - mountPath: /opt
+      name: data-volume
+
+# This config is for each pod, if you want to set a volume for multiple pods check 28-persistence-volumes.yml
+  volumes:
+  - name: data-volume
+
+
+    # === Next set the volume type ===
+
+    # Volume type for node storage (Using a directory on the host)
+    hostPath:
+      # Any files created on the volume will be created on the directory data of the node
+      # Not recommended because this is on a node scope so each node will have a /data directory with different data
+      path: /data
+      type: Directory
+
+    # Volume type for PVC
+    # persistentVolumeClaim:
+    #   claimName: my-claim
+
+    # Volume type for AWS (This AWS EBS volume must already exist.)
+    # awsElasticBlockStore:
+    #   volumeID: "<volume id>"
+    #   fsType: ext4
+
+    # Volume type to use for GCP Deprecated
+    # gcePersistentDisk:
+    #   pdName: "<volume name>"
+    #   fsType: ext4

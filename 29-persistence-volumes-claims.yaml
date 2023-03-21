@@ -1,0 +1,12 @@
+# The PersistentVolumeClaim binds the PersistentVolume to a pod
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: my-claim
+spec:
+  resources:
+    requests:
+      storage: 500Mi
+  accessModes:
+    - ReadWriteOnce
+  # volumeMode: Filesystem
