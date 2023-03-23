@@ -1,0 +1,35 @@
+# Using this we don't need to create a pv, the StorageClass does that automatically
+# and also it creates the storage on GCP
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: google-storage
+provisioner: https://kubernetes.io/gce-pd
+parameters:
+  type: pd-standard
+  replication-type: none
+  # type: pd-ssd
+  # replication-type: regional-pd
+
+
+# === You can create different classes ===
+
+# == gold class, better drive
+# apiVersion: storage.k8s.io/v1
+# kind: StorageClass
+# metadata:
+#   name: google-storage-gold
+# provisioner: https://kubernetes.io/gce-pd
+# parameters:
+#   type: pd-ssd
+#   replication-type: none
+
+# == platinum class, better drive and regional
+# apiVersion: storage.k8s.io/v1
+# kind: StorageClass
+# metadata:
+#   name: google-storage-platinum
+# provisioner: https://kubernetes.io/gce-pd
+# parameters:
+#   type: pd-ssd
+#   replication-type: regional-pd

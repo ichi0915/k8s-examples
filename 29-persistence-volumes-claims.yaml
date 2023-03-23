@@ -4,6 +4,8 @@ kind: PersistentVolumeClaim
 metadata:
   name: my-claim
 spec:
+  # we can use google-storage to use the file 30-google-dynamic... and dynamically create the storage on gpc
+  # storageClassName: "google-storage"
   resources:
     requests:
       storage: 500Mi

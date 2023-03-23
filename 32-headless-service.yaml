@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-h
+spec:
+  selector:
+    app: my-app
+  ports:
+    - port: 3306
+  # This makes it headless
+  clusterIP: none
+
+
+
+# === For this to work you need to add subdomain and hostname to the pod that is going to use the DNS
+
+# apiVersion: v1
+# kind: Pod
+# metadata:
+#   name: my-app-pod
+#   labels:
+#     app: mysql
+# spec:
+#   containers:
+#     - name: mysql
+#       image: mysql
+#   subdomain: mysql-h
+#   hostname: mysql-pod

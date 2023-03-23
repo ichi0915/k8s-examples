@@ -1,0 +1,79 @@
+# How many StorageClasses exist in the cluster right now?
+kubectl get sc
+
+# How about now? How many Storage Classes exist in the cluster?
+kubectl get sc -A
+
+# What is the name of the Storage Class that does not support dynamic volume provisioning?
+kubectl describe sc/local-storage | grep Provisioner
+# no-provisioner means it does not support dynamic volume provisioning
+# Provisioner:           kubernetes.io/no-provisioner
+
+# What is the Volume Binding Mode used for this storage class (the one identified in the previous question)?
+kubectl describe sc/local-storage | grep VolumeBindingMode
+
+# What is the Provisioner used for the storage class called portworx-io-priority-high?
+kubectl describe sc/portworx-io-priority-high | grep Provisioner
+
+# Create a new PersistentVolumeClaim by the name of local-pvc that should bind to the volume local-pv.
+kubectl describe pv/local-pv
+# vim PersistentVolumeClaim.yml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: local-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  #volumeMode: Filesystem
+  storageClassName: local-storage
+  resources:
+    requests:
+      storage: 500Mi
+# apply
+
+# What is the status of the newly created Persistent Volume Claim?
+kubectl get pvc
+
+# Why is the PVC in a pending state despite making a valid request to claim the volume called local-pv?
+kubectl describe pvc local-pvc
+# The Storage Class called local-storage makes use of VolumeBindingMode set to WaitForFirstConsumer.
+#   This will delay the binding and provisioning of a PersistentVolume until a Pod using the PersistentVolumeClaim is created.
+
+# Create a new pod called nginx with the image nginx:alpine.
+#   The Pod should make use of the PVC local-pvc and mount the volume at the path /var/www/html.
+kubectl run nginx --image=nginx:alpine --dry-run=client -o yaml > nginx.yml
+# vim nginx.yml
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: nginx
+  name: nginx
+spec:
+  containers:
+  - image: nginx:alpine
+    name: nginx
+    resources: {}
+    volumeMounts:
+    - name: local-persistent-volume
+      mountPath: /var/www/html
+  volumes:
+    - name: local-persistent-volume
+      persistentVolumeClaim:
+        claimName: local-pv
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+status: {}
+# apply
+
+# Create a new Storage Class called delayed-volume-sc
+# vim sc.yml
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: delayed-volume-sc
+provisioner: kubernetes.io/no-provisioner
+volumeBindingMode: WaitForFirstConsumer
+# apply

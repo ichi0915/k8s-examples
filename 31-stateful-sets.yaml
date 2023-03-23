@@ -1,0 +1,43 @@
+# StatefulSet represents a set of pods with consistent identities.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: my-app
+spec:
+  selector:
+    matchLabels:
+      app: mysql
+  # Specify the headless server
+  # headless server only creates a DNS entry for each pod
+  serviceName: "mysql-h"
+  # in this example it creates 2 DNS (mysql-0.mysql-h.default.svc.cluster.local, mysql-1.mysql-h.default.svc.cluster.local)
+  replicas: 2
+  # Controls how pods are created during initial scale up, when replacing pods on nodes, or when scaling down
+  # OrderedReady: creates the pods in order (mysql-1, mysql-2) and when scaling it maintains the order --replicas=3 (mysql-1, mysql-2, mysql-3), when scaling down
+  #   it deletes in order --replicas=1 (mysql-1)
+  podManagementPolicy: OrderedReady     #Default
+  # podManagementPolicy: Parallel
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      containers:
+      - name: mysql
+        image: mysql
+        args:
+        - sleep
+        - infinity
+        volumeMounts:
+        - mountPath: "/data"
+          name: my-pvc
+  volumeClaimTemplates:
+  - metadata:
+      name: my-pvc
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 5Gi
+      storageClassName: default

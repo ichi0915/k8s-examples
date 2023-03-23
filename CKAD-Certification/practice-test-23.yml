@@ -1,0 +1,120 @@
+# Configure a volume to store webapp logs at /var/log/webapp on the host.
+# kubectl run pod webapp --image=kodekloud/event-simulator --dry-run=client -o yaml > webapp.yml
+kubectl get po webapp -o yaml > webapp.yaml
+# vim
+apiVersion: v1
+kind: Pod
+metadata:
+  name: webapp
+spec:
+  containers:
+  - name: event-simulator
+    image: kodekloud/event-simulator
+    env:
+    - name: LOG_HANDLERS
+      value: file
+    volumeMounts:
+    - mountPath: /log
+      name: log-volume
+
+  volumes:
+  - name: log-volume
+    hostPath:
+      # directory location on host
+      path: /var/log/webapp
+      type: Directory
+# Delete, Apply
+
+# Create a Persistent Volume with the given specification.
+# Volume Name: pv-log
+# Storage: 100Mi
+# Access Modes: ReadWriteMany
+# Host Path: /pv/log
+# Reclaim Policy: Retain
+vim pv.yml
+#
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-log
+spec:
+  capacity:
+    storage: 100Mi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  hostPath:
+      path: /pv/log
+      type: Directory
+#
+kubectl create -f pv.yml
+
+# Let us claim some of that storage for our application. Create a Persistent Volume Claim with the given specification.
+vim pvc.yml
+#
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: claim-log-1
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Mi
+#
+kubectl create -f pvc.yml
+
+# What is the state of the Persistent Volume Claim?
+kubectl get persistentvolumeclaims
+
+# What is the state of the Persistent Volume?
+kubectl get persistentvolume
+
+# Why is the claim not bound to the available Persistent Volume?
+access Modes Mismatch
+
+# Update the Access Mode on the claim to bind it to the PV.
+change ReadWriteOnce to ReadWriteMany
+
+# Update the webapp pod to use the persistent volume claim as its storage.
+# Replace hostPath configured earlier with the newly created PersistentVolumeClaim.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: webapp
+spec:
+  containers:
+  - name: event-simulator
+    image: kodekloud/event-simulator
+    env:
+    - name: LOG_HANDLERS
+      value: file
+    volumeMounts:
+    - mountPath: /log
+      name: claim-log-1
+
+  volumes:
+  - name: claim-log-1
+    persistentVolumeClaim:
+      claimName: claim-log-1
+
+# What would happen to the PV if the PVC was destroyed?
+The PV is not delete but not available
+
+# Try deleting the PVC and notice what happens.
+# kubectl delete -f pvc.yml --force
+The PCV is stuck in Terminating state
+
+# Why is the PVC stuck in Terminating state?
+The PCV is used by the pod
+
+# Let us now delete the webapp Pod.
+kubectl delete -f webapp.yml --force
+
+# What is the state of the PVC now?
+Deleted
+
+# What is the state of the Persistent Volume now?
+Released
