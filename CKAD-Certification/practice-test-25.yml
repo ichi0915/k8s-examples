@@ -1,0 +1,31 @@
+# How many images are available on this host?
+# What is the size of the ubuntu image?
+# We just pulled a new image. What is the tag on the newly pulled NGINX image?
+docker image ls
+
+# We just downloaded the code of an application. What is the base image used in the Dockerfile?
+# To what location within the container is the application code copied to during a Docker build?
+# When a container is created using the image built with this Dockerfile, what is the command used to RUN the application inside it.
+cat Dockerfile
+
+# Build a docker image using the Dockerfile and name it webapp-color. No tag to be specified.
+docker build -t webapp-color .
+
+# Run an instance of the image webapp-color and publish port 8080 on the container to 8282 on the host.
+docker run -p 8282:8080 webapp-color
+
+# What is the base Operating System used by the python:3.6 image?
+docker run python:3.6 cat /etc/*release*
+
+# What is the approximate size of the webapp-color image?
+docker image ls
+
+# Build a new smaller docker image by modifying the same Dockerfile and name it webapp-color and tag it lite.
+# Hint: Find a smaller base image for python:3.6. Make sure the final image is less than 150MB.
+vim Dockerfile
+# Edit
+# FROM python:3.6-alpine
+docker build -t webapp-color:lite .
+
+# Run an instance of the new image webapp-color:lite and publish port 8080 on the container to 8383 on the host.
+docker run -p 8383:8080 webapp-color:lite
