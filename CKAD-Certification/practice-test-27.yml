@@ -1,0 +1,23 @@
+# Which command is used to search for a wordpress helm chart package from the Artifact Hub?
+helm search hub wordpress
+
+# Add a bitnami helm chart repository in the controlplane node.
+helm repo add bitnami  https://charts.bitnami.com/bitnami
+
+# Which command is used to search for the joomla package from the added repository?
+helm search repo joomla
+
+# How many helm repositories are added in the controlplane node?
+helm repo list
+
+# Install drupal helm chart from the bitnami repository. (Release name should be bravo)
+helm install bravo bitnami/drupal
+
+# Which command is used to list packages installed using helm?
+helm list
+
+# Uninstall the drupal helm package which we installed earlier.
+helm uninstall bravo
+
+# Download the bitnami apache package under the /root directory.
+helm pull --untar bitnami/apache
