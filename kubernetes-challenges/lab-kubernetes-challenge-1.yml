@@ -1,0 +1,169 @@
+
+=== lab kubernetes challenge 1 ===
+
+# === Role
+# 'developer-role', should have all(*) permissions for services in development namespace
+# 'developer-role', should have all permissions(*) for persistentvolumeclaims in development namespace
+# 'developer-role', should have all(*) permissions for pods in development namespace
+k create clusterrole developer-role --verb="*" --resource="*" -n development --dry-run=client -o yaml > cr.yml
+k create clusterrole developer-role --verb="*" --resource="services","persistentvolumeclaims","pods" -n development --dry-run=client -o yaml > cr.yml
+
+# Este es el chido
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: development
+  name: developer-role
+rules:
+- apiGroups: [""] # "" indicates the core API group
+  resources: ["pods", "services", "persistentvolumeclaims"]
+  verbs: ["*"]
+
+# Este no
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  namespace: development
+  name: developer-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - services
+  - persistentvolumeclaims
+  - pods
+  verbs:
+  - '*'
+
+# === Rolebinding
+# create rolebinding = developer-rolebinding, role= 'developer-role', namespace = development
+# rolebinding = developer-rolebinding associated with user = 'martin'
+k create clusterrolebinding developer-rolebinding --clusterrole=developer-role -n development --user=martin --dry-run=client -o yaml > crb.yml
+
+# Este es el chido
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  namespace: development
+  name: developer-rolebinding
+subjects:
+- kind: User
+  name: martin
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role #this must be Role or ClusterRole
+  name: developer-role
+  apiGroup: rbac.authorization.k8s.io
+
+# Este no
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  namespace: development
+  name: developer-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: developer-role
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: User
+  name: martin
+
+# === kube-config
+# set context 'developer' with user = 'martin' and cluster = 'kubernetes' as the current context.
+kubectl config set-context developer --user=martin
+kubectl config set-cluster kubernetes
+# con un solo comando
+kubectl config set-context developer --cluster kubernetes --user martin
+
+# === Martin login
+# Build user information for martin in the default kubeconfig file: User = martin , client-key = /root/martin.key and client-certificate = /root/martin.crt
+# Create a new context called 'developer' in the default kubeconfig file with 'user = martin' and 'cluster = kubernetes'
+kubectl config set-credentials developer --client-certificate=/root/martin.crt --client-key=root/martin.key
+kubectl config set-credentials martin --client-certificate ./martin.crt --client-key ./martin.key
+
+# === PV
+# jekyll-site pv is already created. Inspect it before you create the pvc.
+k get pv -A
+
+# === PVC
+# Storage Request: 1Gi
+# Access modes: ReadWriteMany
+# pvc name = jekyll-site, namespace = development
+# 'jekyll-site' PVC should be bound to the PersistentVolume called 'jekyll-site'.
+# vim pvc.yml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jekyll-site
+  namespace: development
+spec:
+  accessModes:
+    - ReadWriteMany
+  # volumeMode: Filesystem
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: "local-storage"
+
+# === Pod
+# pod: 'jekyll' has an initContainer, name: 'copy-jekyll-site', image: 'kodekloud/jekyll'
+# initContainer: 'copy-jekyll-site', command: [ "jekyll", "new", "/site" ] (command to run: jekyll new /site)
+# pod: 'jekyll', initContainer: 'copy-jekyll-site', mountPath = '/site'
+# pod: 'jekyll', initContainer: 'copy-jekyll-site', volume name = 'site'
+
+# pod: 'jekyll', container: 'jekyll', volume name = 'site'
+# pod: 'jekyll', container: 'jekyll', mountPath = '/site'
+# pod: 'jekyll', container: 'jekyll', image = 'kodekloud/jekyll-serve'
+# pod: 'jekyll', uses volume called 'site' with pvc = 'jekyll-site'
+# pod: 'jekyll' uses label 'run=jekyll'
+
+k run pod jekyll --image=kodekloud/jekyll-serve --labels="run=jekyll" --dry-run=client -o yaml > pod.yml
+
+apiVersion: v1
+kind: Pod
+metadata:
+  namespace: development
+  name: jekyll
+  labels:
+    run: jekyll
+spec:
+  containers:
+  - name: jekyll
+    image: kodekloud/jekyll-serve
+    volumeMounts:
+      - mountPath: /site
+        name: site
+  initContainers:
+    - name: copy-jekyll-site
+      image: kodekloud/jekyll
+      command: [ "jekyll", "new", "/site" ]
+      # command: [ "sh", "-c", "jekyll new /site" ]
+      volumeMounts:
+        - mountPath: /site
+          name: site
+  volumes:
+    - name: site
+      persistentVolumeClaim:
+        claimName: jekyll-site
+
+# === SVC
+# Service 'jekyll' uses targetPort: '4000', namespace: 'development'
+# Service 'jekyll' uses Port: '8080', namespace: 'development'
+# Service 'jekyll' uses NodePort: '30097', namespace: 'development'
+
+# vim svc.yml
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: development
+  name: jekyll-site-svc
+spec:
+  type: NodePort
+  selector:
+    app: jekyll
+  ports:
+    - port: 8080
+      targetPort: 4000
+      nodePort: 30097
