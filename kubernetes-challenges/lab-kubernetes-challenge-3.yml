@@ -1,0 +1,226 @@
+
+=== lab kubernetes challenge 3 ===
+
+# Deploy the given architecture to vote namespace.
+# Click on each icon (including arrows) to see more details. Once done click on Check button to test your work.
+
+# === Node
+# === Role
+# === Rolebinding
+# === kube-config
+# === User login
+# === PV
+# === PVC
+# === Pod
+
+# === NS
+# Create a new namespace: name = 'vote'
+k create ns vote
+
+
+# === Deployment 0
+# Create new deployment. name: 'worker'
+# image: 'kodekloud/examplevotingapp_worker'
+# status: 'Running'
+kubectl create deployment worker --image=kodekloud/examplevotingapp_worker --dry-run=client -o yaml > worker-deployment.yml
+
+# === Deployment 1
+# Create new deployment, name: 'redis-deployment'
+# image: 'redis:alpine'
+# Volume Type: 'EmptyDir'
+# Volume Name: 'redis-data'
+# mountPath: '/data'
+# status: 'Running'
+
+kubectl create deployment redis-deployment --image=redis:alpine --dry-run=client -o yaml > redis-deployment.yml
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: redis-deployment
+  name: redis-deployment
+  namespace: vote
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis-deployment
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: redis-deployment
+    spec:
+      containers:
+      - image: redis:alpine
+        name: redis
+        volumeMounts:
+          - mountPath: /data
+            name: redis-data
+      volumes:
+      - name: redis-data
+        emptyDir:
+          sizeLimit: 500Mi
+
+# === SVC 1
+# New Service, name = 'redis'
+# port: '6379'
+# targetPort: '6379'
+# type: 'ClusterIP'
+# service endpoint exposes deployment 'redis-deployment'
+
+kubectl create service clusterip redis --tcp=6379:6379 --dry-run=client -o yaml > redis-service.yml
+
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  labels:
+    app: redis
+  name: redis
+  namespace: vote
+spec:
+  ports:
+  - name: redis-service
+    port: 6379
+    protocol: TCP
+    targetPort: 6379
+  selector:
+    app: redis-deployment
+  type: ClusterIP
+
+
+# === Deployment 2
+# Create a deployment: name = 'vote-deployment'
+# image = 'kodekloud/examplevotingapp_vote:before'
+# status: 'Running'
+kubectl create deployment vote-deployment --image=kodekloud/examplevotingapp_vote:before --dry-run=client -o yaml > vote-deployment.yml
+
+# === SVC 2
+# Create a new service: name = vote-service
+# port = '5000'
+# targetPort = '80'
+# nodePort= '31000'
+# service endpoint exposes deployment 'vote-deployment'
+kubectl create service nodeport vote-service --tcp=5000:80 --dry-run=client -o yaml > vote-service.yml
+
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: vote-service
+  name: vote-service
+  namespace: vote
+spec:
+  ports:
+  - name: vote-service
+    port: 5000
+    protocol: TCP
+    targetPort: 5000
+    nodePort: 31000
+  selector:
+    app: vote-deployment
+  type: NodePort
+
+# === Deployment 3
+# Create new deployment. name: 'db-deployment'
+# image: 'postgres:9.4' and add the env: 'POSTGRES_HOST_AUTH_METHOD=trust'
+# Volume Type: 'EmptyDir'
+# Volume Name: 'db-data'
+# mountPath: '/var/lib/postgresql/data'
+# status: 'Running'
+kubectl create deployment db-deployment --image=postgres:9.4 --dry-run=client -o yaml > db-deployment.yml
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: db-deployment
+  name: db-deployment
+  namespace: vote
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: db-deployment
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: db-deployment
+    spec:
+      containers:
+      - env:
+        - name: POSTGRES_HOST_AUTH_METHOD
+          value: trust
+        image: postgres:9.4
+        name: postgres
+        volumeMounts:
+          - mountPath: /var/lib/postgresql/data
+            name: db-data
+      volumes:
+      - name: db-data
+        emptyDir:
+          sizeLimit: 500Mi
+
+# === SVC 3
+# Create new service: 'db'
+# port: '5432'
+# targetPort: '5432'
+# type: 'ClusterIP'
+kubectl create service ClusterIP db --tcp=5432:5432 --dry-run=client -o yaml > db-service.yml
+
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  labels:
+    app: db
+  name: db
+spec:
+  ports:
+  - name: db
+    port: 5432
+    protocol: TCP
+    targetPort: 5432
+  selector:
+    app: db-deployment
+  type: ClusterIP
+status:
+  loadBalancer: {}
+
+# === Deployment 4
+# Create new deployment, name: 'result-deployment'
+# image: 'kodekloud/examplevotingapp_result:before'
+# status: 'Running'
+kubectl create deployment result-deployment --image=kodekloud/examplevotingapp_result:before --dry-run=client -o yaml > result-deployment.yml
+
+# === SVC 3
+# port: '5001'
+# targetPort: '80'
+# NodePort: '31001'
+kubectl create service nodeport result-service --tcp=5001:80 --dry-run=client -o yaml > result-service.yml
+
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  labels:
+    app: result-service
+  name: result-service
+  namespace: vote
+spec:
+  ports:
+  - name: result-service
+    port: 5001
+    protocol: TCP
+    targetPort: 80
+    nodePort: 31001
+  selector:
+    app: result-service
+  type: NodePort
+status:
+  loadBalancer: {}
