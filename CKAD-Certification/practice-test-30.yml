@@ -1,0 +1,87 @@
+# What is the flow of invocation of admission controllers?
+First mutating then validating
+
+# Create namespace webhook-demo where we will deploy webhook components
+kubectl create ns webhook-demo
+
+# Create TLS secret webhook-server-tls for secure webhook communication in webhook-demo namespace.
+# We have already created below cert and key for webhook server which should be used to create secret.
+# Certificate : /root/keys/webhook-server-tls.crt
+# Key : /root/keys/webhook-server-tls.key
+# Help: kubectl create secret tls -h
+kubectl create secret tls webhook-server-tls --cert=/root/keys/webhook-server-tls.crt --key=/root/keys/webhook-server-tls.key -n webhook-demo
+
+# Create webhook deployment now.
+# We have already added sample deployment definition under /root/webhook-deployment.yaml so just create deployment with that definition.
+kubectl apply -f /root/webhook-deployment.yaml
+
+# Create webhook service now so that admission controller can communicate with webhook.
+# We have already added sample service definition under /root/webhook-service.yaml so just create service with that definition.
+kubectl apply -f /root/webhook-service.yaml
+
+# We have added MutatingWebhookConfiguration under /root/webhook-configuration.yaml.
+# If we apply this configuration which resource and actions it will affect?
+# Now lets deploy MutatingWebhookConfiguration in /root/webhook-configuration.yaml
+kubectl apply -f /root/webhook-configuration.yaml
+
+# In previous steps we have deployed demo webhook which does below
+# - Denies all request for pod to run as root in container if no securityContext is provided.
+# - If no value is set for runAsNonRoot, a default of true is applied, and the user ID defaults to 1234
+# - Allow to run containers as root if runAsNonRoot set explicitly to false in the securityContext
+# In next steps we have added some pod definitions file for each scenario. Deploy those pods with existing definitions
+#   file and validate the behaviour of our webhook
+
+# What are runAsNonRoot and runAsUser values for previously created pods securityContext?
+kubectl describe pod/pod-with-defaults -o yaml
+
+
+# === Extra
+# cat /root/webhook-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webhook-server
+  namespace: webhook-demo
+  labels:
+    app: webhook-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: webhook-server
+  template:
+    metadata:
+      labels:
+        app: webhook-server
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1234
+      containers:
+      - name: server
+        image: stackrox/admission-controller-webhook-demo:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8443
+          name: webhook-api
+        volumeMounts:
+        - name: webhook-tls-certs
+          mountPath: /run/secrets/tls
+          readOnly: true
+      volumes:
+      - name: webhook-tls-certs
+        secret:
+          secretName: webhook-server-tls
+
+# cat /root/webhook-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: webhook-server
+  namespace: webhook-demo
+spec:
+  selector:
+    app: webhook-server
+  ports:
+    - port: 443
+      targetPort: webhook-api

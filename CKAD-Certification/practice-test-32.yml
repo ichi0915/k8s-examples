@@ -1,0 +1,69 @@
+# We have provided an incomplete CRDs manifest file called crd.yaml under the /root directory. Let’s complete it and create
+#   a custom resource definition from it.
+# Let’s create a custom resource definition called internals.datasets.kodekloud.com.
+#   Assign the group to datasets.kodekloud.com and the resource is accessible only from a specific namespace.
+# Make sure the version should be v1 and needed to enable the version so it’s being served via REST API.
+# So finally create a custom resource from a given manifest file called custom.yaml.
+# Note :- Make sure resources should be created successfully from the custom.yaml file.
+# Vim crd.yaml
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: internals.datasets.kodekloud.com 
+spec:
+  group: datasets.kodekloud.com
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                internalLoad:
+                  type: string
+                range:
+                  type: integer
+                percentage:
+                  type: string
+  scope: Namespaced 
+  names:
+    plural: internals
+    singular: internal
+    kind: Internal
+    shortNames:
+    - int
+# kubectl apply -f crd.yaml
+
+# vim custom.yml
+kind: Internal
+apiVersion: datasets.kodekloud.com/v1
+metadata:
+  name: internal-space
+  namespace: default
+spec:
+  internalLoad: "high"
+  range: 80
+  percentage: "50"
+# kubectl apply -f custom.yaml
+
+# What are the properties given to the CRD’s called collectors.monitoring.controller?
+kubectl describe crd collectors.monitoring.controller
+
+# Create a custom resource called datacenter and the apiVersion should be traffic.controller/v1.
+# Set the dataField length to 2 and access permission should be true.
+# vim datacenter.yml
+kind: Global
+apiVersion: traffic.controller/v1
+metadata:
+  name: datacenter
+spec:
+  dataField: 2
+  access: true
+# kubectl apply -f datacenter.yml
+
+# What is the short name given to the CRD globals.traffic.controller ?
+kubectl describe crd/globals.traffic.controller

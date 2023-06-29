@@ -18,7 +18,7 @@ kubectl create secret generic db-secret --from-literal=DB_Host=sql01 --from-lite
 
 # Configure webapp-pod to load environment variables from the newly created secret.
 kubectl get pod webapp-pod -o yaml > webapp-pod.yml
-# vim
+# vim, inside containers section add
 envFrom:
       - secretRef:
           name: db-secret

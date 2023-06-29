@@ -22,6 +22,7 @@ spec:
     # === Next set the volume type ===
 
     # Volume type for node storage (Using a directory on the host)
+    # hostPath es un volumen normal
     hostPath:
       # Any files created on the volume will be created on the directory data of the node
       # Not recommended because this is on a node scope so each node will have a /data directory with different data

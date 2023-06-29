@@ -1,0 +1,34 @@
+# Which admission controller is enabled in this cluster which is normally disabled?
+cat /etc/kubernetes/manifests/kube-apiserver.yaml
+cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep admission
+# grep enable-admission-plugins /etc/kubernetes/manifests/kube-apiserver.yaml
+
+# Try to create nginx pod in the blue namespace. The blue namespace does not already exist. Dont create the blue namespace yet.
+# Run below command to deploy a pod with the nginx image in the blue namespace
+kubectl run nginx --image nginx -n blue
+
+# The previous step failed because kubernetes have NamespaceExists admission controller enabled which rejects
+#   requests to namespaces that do not exist. So, to create a namespace that does not exist automatically,
+#   we could enable the NamespaceAutoProvision admission controller
+# Enable the NamespaceAutoProvision admission controller
+# Note: Once you update kube-apiserver yaml file, please wait for a few minutes for the kube-apiserver to restart completely.
+# vim /etc/kubernetes/manifests/kube-apiserver.yaml
+- --enable-admission-plugins=NodeRestriction,NamespaceAutoProvision
+
+# Now, let's run the nginx pod in blue namespace and check if it succeeds.
+# Pod image: nginx
+kubectl run nginx --image nginx -n blue
+
+# Note that the NamespaceExists and NamespaceAutoProvision admission controllers are deprecated and now replaced by
+#   NamespaceLifecycle admission controller.
+# The NamespaceLifecycle admission controller will make sure that requests
+# to a non-existent namespace is rejected and that the default namespaces such as default, kube-system and kube-public cannot be deleted.
+
+# Disable DefaultStorageClass admission controller
+# This admission controller observes creation of PersistentVolumeClaim objects that do not request any specific storage class and automatically adds a default storage class to them. This way, users that do not request any special storage class do not need to care about them at all and they will get the default one.
+# Note: Once you update kube-apiserver yaml file then please wait few mins for the kube-apiserver to restart completely.
+# vim /etc/kubernetes/manifests/kube-apiserver.yaml
+- --disable-admission-plugins=DefaultStorageClass
+
+# Since the kube-apiserver is running as pod you can check the process to see enabled and disabled plugins.
+# ps -ef | grep kube-apiserver | grep admission-plugins

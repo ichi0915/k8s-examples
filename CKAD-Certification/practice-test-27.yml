@@ -1,23 +1,96 @@
-# Which command is used to search for a wordpress helm chart package from the Artifact Hub?
-helm search hub wordpress
+# Inspect the environment and identify the authorization modes configured on the cluster.
+# Check the kube-apiserver settings.
+kubectl describe pod kube-apiserver-controlplane -n kube-system
 
-# Add a bitnami helm chart repository in the controlplane node.
-helm repo add bitnami  https://charts.bitnami.com/bitnami
+# How many roles exist in the default namespace?
+kubectl get roles
 
-# Which command is used to search for the joomla package from the added repository?
-helm search repo joomla
+# How many roles exist in all namespaces together?
+kubectl get roles -A
 
-# How many helm repositories are added in the controlplane node?
-helm repo list
+# What are the resources the kube-proxy role in the kube-system namespace is given access to?
+# What actions can the kube-proxy role perform on configmaps?
+# Which of the following statements are true?
+kubectl describe role kube-proxy -n kube-system
 
-# Install drupal helm chart from the bitnami repository. (Release name should be bravo)
-helm install bravo bitnami/drupal
+# Which account is the kube-proxy role assigned to?
+kubectl describe rolebinding kube-proxy -n kube-system
 
-# Which command is used to list packages installed using helm?
-helm list
+# A user dev-user is created. User's details have been added to the kubeconfig file. Inspect the permissions granted to the user. Check if the user can list pods in the default namespace.
+# Use the --as dev-user option with kubectl to run commands as the dev-user.
+kubectl get pods --as dev-user
+kubectl auth can-i list pods --as dev-user
 
-# Uninstall the drupal helm package which we installed earlier.
-helm uninstall bravo
+# Create the necessary roles and role bindings required for the dev-user to create, list and delete pods in the default namespace.
+# vim developer-role.yml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: default
+  name: developer
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["create", "delete", "list"]
+# kubectl apply -f developer-role.yml
 
-# Download the bitnami apache package under the /root directory.
-helm pull --untar bitnami/apache
+# vim developer-role-biding.yml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: dev-user-binding
+  namespace: default
+subjects:
+- kind: User
+  name: dev-user
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: developer
+  apiGroup: rbac.authorization.k8s.io
+# kubectl apply -f developer-role-biding.yml
+
+# A set of new roles and role-bindings are created in the blue namespace for the dev-user.
+# However, the dev-user is unable to get details of the dark-blue-app pod in the blue namespace. Investigate and fix the issue.
+# We have created the required roles and rolebindings, but something seems to be wrong.
+kubectl get roles -n blue
+kubectl get role developer -n blue -o yaml > blue-dev-role.yml
+vim blue-dev-role.yml
+kubectl get rolebinding -n blue
+kubectl get rolebinding dev-user-binding -n blue -o yaml > blue-dev-role-binding.yml
+kubectl delete role/developer -n blue
+kubectl apply -f blue-dev-role.yml
+
+# Add a new rule in the existing role developer to grant the dev-user permissions to create deployments in the blue namespace.
+# Remember to add api group "apps".
+# vim blue-dev-role.yml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  creationTimestamp: "2023-06-27T22:58:09Z"
+  name: developer
+  namespace: blue
+  resourceVersion: "1894"
+  uid: d9b226db-4a64-4581-b67c-0585c405a9c4
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - blue-app
+  - dark-blue-app
+  resources:
+  - pods
+  verbs:
+  - get
+  - watch
+  - create
+  - delete
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  verbs:
+  - create
+
+# kubectl delete -f blue-dev-role.yml
+# kubectl apply -f blue-dev-role.yml

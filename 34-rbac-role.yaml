@@ -1,0 +1,21 @@
+# To enable RBAC, start the API server with the --authorization-mode flag set to a comma-separated list that includes RBAC:
+# kube-apiserver --authorization-mode=Example,RBAC --other-options --more-options
+
+# An RBAC Role or ClusterRole contains rules that represent a set of permissions.
+# Permissions are purely additive (there are no "deny" rules).
+
+# A Role always sets permissions within a particular namespace;
+# when you create a Role, you have to specify the namespace it belongs in.
+
+# If you want to define a role within a namespace, use a Role; if you want to define a role cluster-wide, use a ClusterRole.
+
+# Example role that is used to grant read access to pods:
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: default
+  name: pod-reader
+rules:
+- apiGroups: [""] # "" indicates the core API group
+  resources: ["pods"]
+  verbs: ["get", "watch", "list"]
