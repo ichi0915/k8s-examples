@@ -1,0 +1,149 @@
+
+=== lab kubernetes challenge 4 ===
+
+# Build a highly available Redis Cluster based on the given architecture diagram.
+# Click on each icon to see more details. Once done click on the Check button to test your work.
+
+# ====== PV-redis01
+# PersistentVolume - Name: redis01
+# Access modes: ReadWriteOnce
+# Size: 1Gi
+# hostPath: /redis01, directory should be created on worker node
+
+# vim redis01-pv.yml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: redis01
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/redis01"
+# k apply -f redis01-pv.yml
+
+# cp redis01-pv.yml redis02-pv.yml
+# vim redis02-pv.yml
+
+# copy, edit and apply 6 files
+
+# ====== ConfigMap: redis-cluster-configmap is already created. Inspect it…
+k describe cm/redis-cluster-configmap
+
+# ====== StatefulSet
+
+# StatefulSet - Name: redis-cluster
+# Replicas: 6
+# Pods status: Running (All 6 replicas)
+# Image: redis:5.0.1-alpine, Label = app: redis-cluster
+# container name: redis, command: ["/conf/update-node.sh", "redis-server", "/conf/redis.conf"]
+# Env: name: 'POD_IP', valueFrom: 'fieldRef', fieldPath: 'status.podIP' (apiVersion: v1)
+# Ports - name: 'client', containerPort: '6379'
+# Ports - name: 'gossip', containerPort: '16379'
+
+# Volume Mount - name: 'conf', mountPath: '/conf', readOnly:'false' (ConfigMap Mount)
+# Volume Mount - name: 'data', mountPath: '/data', readOnly:'false' (volumeClaim)
+
+# volumes - name: 'conf', Type: 'ConfigMap', ConfigMap Name: 'redis-cluster-configmap',
+# Volumes - name: 'conf', ConfigMap Name: 'redis-cluster-configmap', defaultMode = '0755'
+# volumeClaimTemplates - name: 'data'
+# volumeClaimTemplates - accessModes: 'ReadWriteOnce'
+# volumeClaimTemplates - Storage Request: '1Gi'
+
+# vim statefullSet.yml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis-cluster
+spec:
+  selector:
+    matchLabels:
+      app: redis-cluster # has to match .spec.template.metadata.labels
+  serviceName: "redis-cluster-service"
+  replicas: 6
+  # minReadySeconds: 10 # by default is 0
+  template:
+    metadata:
+      labels:
+        app: redis-cluster # has to match .spec.selector.matchLabels
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+      - name: redis
+        image: redis:5.0.1-alpine
+        command: ["/bin/sh", "-c", "/conf/update-node.sh redis-server /conf/redis.conf"]
+        # command: ["/bin/sh"]
+        # args: ["-c", "/conf/update-node.sh redis-server /conf/redis.conf"]
+        # args: ["-c", "/conf/update-node.sh", "redis-server", "/conf/redis.conf"]
+        env:
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        # envFrom:
+        # - configMapRef:
+        #     name: special-config
+
+        ports:
+        - containerPort: 6379
+          name: client
+        - containerPort: 16379
+          name: gossip
+        volumeMounts:
+        - name: conf
+          mountPath: /conf
+          readOnly: false
+
+        - name: data
+          mountPath: /data
+          readOnly: false
+
+      volumes:
+      - name: conf
+        configMap:
+          name: redis-cluster-configmap
+          defaultMode: 0755 #DirectoryOrCreate
+
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      # storageClassName: "my-storage-class"
+      resources:
+        requests:
+          storage: 1Gi
+
+# k apply -f statefullSet.yml
+
+
+# ====== service
+
+Ports - service name 'redis-cluster-service', port name: 'client', port: '6379'
+Ports - service name 'redis-cluster-service', port name: 'gossip', port: '16379'
+Ports - service name 'redis-cluster-service', port name: 'client', targetPort: '6379'
+Ports - service name 'redis-cluster-service', port name: 'gossip', targetPort: '16379'
+
+# vim redis-cluster-service.yml
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-cluster-service
+spec:
+  selector:
+    app.kubernetes.io/name: redis
+  ports:
+    - name: client
+      protocol: TCP
+      port: 6379
+      targetPort: 6379
+    - name: gossip
+      protocol: TCP
+      port: 16379
+      targetPort: 16379
+
+# ====== Command:
+# kubectl exec -it redis-cluster-0 -- redis-cli --cluster create --cluster-replicas 1 $(kubectl get pods -l app=redis-cluster -o jsonpath='{range.items[*]}{.status.podIP}:6379 {end}')
+
