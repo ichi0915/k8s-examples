@@ -44,18 +44,18 @@ metadata:
   name: logger
 spec:
   volumes:
-    - name: log
+    - name: pv-claim
       persistentVolumeClaim:
         claimName: log-claim
   containers:
     - name: logger
       image: nginx:alpine
-      ports:
-        - containerPort: 80
-          name: "http-server"
+      # ports:
+      #   - containerPort: 80
+      #     name: "http-server"
       volumeMounts:
         - mountPath: "/var/www/nginx"
-          name: log-volume
+          name: pv-claim
 
 
 # ==== 2
@@ -66,6 +66,7 @@ spec:
 # Important: Don't Alter Existing Objects!
 # Connectivity working?
 
+Todo Fix NetworkPolicy
 
 # ==== 3
 # Create a pod called time-check in the dvl1987 namespace. This pod should run a container called time-check that uses the busybox image.
@@ -156,7 +157,6 @@ spec:
       - image: nginx:1.16
         name: nginx
         resources: {}
-status: {}
 
 # kubectl set image deployment/nginx-deploy nginx=nginx:1.17
 # kubectl rollout history deployment/nginx-deploy
@@ -218,4 +218,3 @@ spec:
         resources:
           requests:
             cpu: "0.2"
-

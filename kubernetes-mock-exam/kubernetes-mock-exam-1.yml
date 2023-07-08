@@ -1,0 +1,339 @@
+# ==== "KodeKloud CKAD Mock Exam - Part 1! ====
+
+Mock Exam 1
+
+# ============ 1 ============
+# Deploy a pod named nginx-448839 using the nginx:alpine image.
+
+# Once done, click on the Next Question button in the top right corner of this panel.
+# You may navigate back and forth freely between all questions.
+# Once done with all questions, click on End Exam. Your work will be validated at the end and score shown. Good Luck!
+
+k run nginx-448839 --image=nginx:alpine --dry-run=client -o yaml > nginx-448839-pod.yml
+k apply -f nginx-448839-pod.yml
+
+
+# ============ 2 ============
+# Create a namespace named apx-z993845
+k create ns apx-z993845
+k get ns
+
+# ============ 3 ============
+# Create a new Deployment named httpd-frontend with 3 replicas using image httpd:2.4-alpine
+# Name: httpd-frontend
+# Replicas: 3
+# Image: httpd:2.4-alpine
+
+k create deployment httpd-frontend --image=httpd:2.4-alpine --replicas=3 --dry-run=client -o yaml > httpd-frontend-deploy.yml
+k apply -f httpd-frontend-deploy.yml
+
+
+# ============ 4 ============
+# Deploy a messaging pod using the redis:alpine image with the labels set to tier=msg.
+# Pod Name: messaging
+# Image: redis:alpine
+# Labels: tier=msg
+
+# vim messaging-pod.yml
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: messaging
+    tier: msg
+  name: messaging
+spec:
+  containers:
+  - image: redis:alpine
+    name: messaging
+    resources: {}
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+status: {}
+# k apply -f messaging-pod.yml
+
+# ============ 5 ============
+# A replicaset rs-d33393 is created. However the pods are not coming up. Identify and fix the issue.
+# Once fixed, ensure the ReplicaSet has 4 Ready replicas.
+# Replicas: 4
+
+k describe rs/rs-d33393
+k get rs/rs-d33393 -o yaml > 5-replicaset.yml
+# update image and apply
+
+# ============ 6 ============
+# Create a service messaging-service to expose the redis deployment in the marketing namespace within the cluster on port 6379.
+# Use imperative commands
+# Service: messaging-service
+# Port: 6379
+# Use the right type of Service
+# Use the right labels
+kubectl create service clusterip messaging-service --tcp=6379:443 -n marketing --dry-run=client -o yaml > 6-deploy.yml
+# kubectl create service clusterip messaging-service --label=tier=msg --tcp=6379:443 -n marketing --dry-run=client -o yaml
+
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  labels:
+    tier: msg
+    #app: messaging-service
+  name: messaging-service
+  namespace: marketing
+spec:
+  ports:
+  - name: 6379-443
+    port: 6379
+    protocol: TCP
+    targetPort: 443
+  selector:
+    app: messaging-service
+  type: ClusterIP
+status:
+  loadBalancer: {}
+
+
+# Respuesta correcta
+# kubectl expose deployment redis --port=6379 --name messaging-service --namespace marketing
+
+
+# ============ 7 ============
+# Update the environment variable on the pod webapp-color to use a green background.
+# Pod Name: webapp-color
+# Label Name: webapp-color
+# Env: APP_COLOR=green
+
+k get pod/webapp-color -o yaml > 7-webapp-color.yml
+
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: "2023-07-07T17:33:03Z"
+  labels:
+    name: webapp-color
+  name: webapp-color
+  namespace: default
+  resourceVersion: "5968"
+  uid: a2f6e414-9e6f-4ddf-86d2-ebe14b481f6e
+spec:
+  containers:
+  - env:
+    - name: APP_COLOR
+      #value: pink
+      value: green
+    image: kodekloud/webapp-color
+    imagePullPolicy: Always
+etc....
+
+
+# ============ 8 ============
+# Create a new ConfigMap named cm-3392845. Use the spec given on the below.
+
+# ConfigName Name: cm-3392845
+# Data: DB_NAME=SQL3322
+# Data: DB_HOST=sql322.mycompany.com
+# Data: DB_PORT=3306
+
+kubectl create configmap cm-3392845 --from-literal=DB_NAME=SQL3322 --from-literal=DB_HOST=sql322.mycompany.com --from-literal=DB_PORT=3306
+
+# ============ 9 ============
+# Create a new Secret named db-secret-xxdf with the data given (on the below).
+
+# Secret Name: db-secret-xxdf
+# Secret 1: DB_Host=sql01
+# Secret 2: DB_User=root
+# Secret 3: DB_Password=password123
+
+kubectl create secret generic db-secret-xxdf --from-literal=DB_Host=sql01 --from-literal=DB_User=root --from-literal=DB_Password=password123
+
+# ============ 10 ============
+# Update pod app-sec-kff3345 to run as Root user and with the SYS_TIME capability.
+
+# Pod Name: app-sec-kff3345
+# Image Name: ubuntu
+# SecurityContext: Capability SYS_TIME
+
+k get pod/app-sec-kff3345 -o yaml > 10-app-sec.yml
+
+cat 10-app-sec.yml
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: app-sec-kff3345
+  etc...
+spec:
+  containers:
+  - command:
+    - sleep
+    - "4800"
+    image: ubuntu
+    imagePullPolicy: Always
+    name: ubuntu
+    # Added
+    securityContext:
+      capabilities:
+        add: ["SYS_TIME"]
+    # Added
+    etc...
+
+# Delete, apply
+
+# ============ 11 ============
+# Export the logs of the e-com-1123 pod to the file /opt/outputs/e-com-1123.logs
+# It is in a different namespace. Identify the namespace first.
+# Task Completed
+
+k describe pod/e-com-1123 -n e-commerce
+
+k get pod/e-com-1123 -n e-commerce -o yaml > 11-e-com-1123.yml
+
+# -- SKIP --
+# Respuesta correcta
+# kubectl logs e-com-1123 --namespace e-commerce > /opt/outputs/e-com-1123.logs
+
+# ============ 12 ============
+Create a Persistent Volume with the given specification.
+
+# Volume Name: pv-analytics
+# Storage: 100Mi
+# Access modes: ReadWriteMany
+# Host Path: /pv/data-analytics
+
+# vim 12-pv.yml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-analytics
+spec:
+  # storageClassName: manual
+  capacity:
+    storage: 100Mi
+  accessModes:
+    - ReadWriteMany
+  hostPath:
+    path: "/pv/data-analytics"
+
+# apply
+
+# ============ 13 ============
+# Create a redis deployment using the image redis:alpine with 1 replica and label app=redis.
+# Expose it via a ClusterIP service called redis on port 6379.
+# Create a new Ingress Type NetworkPolicy called redis-access which allows only the pods with label access=redis to access the deployment.
+
+# Image: redis:alpine
+# Deployment created correctly?
+# Service created correctly?
+# Network Policy allows the correct pods?
+# Network Policy applied on the correct pods?
+
+kubectl create deployment redis --image=redis:alpine --replicas=1 --port=6379 --dry-run=client -o yaml > 13-deployment.yml
+
+# vim
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    access: redis
+  name: redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      access: redis
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        access: redis
+    spec:
+      containers:
+      - image: redis:alpine
+        name: redis
+        ports:
+        - containerPort: 6379
+        resources: {}
+status: {}
+# apply
+
+# vim 13-networkPolicy.yml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: redis-access
+spec:
+  podSelector:
+    matchLabels:
+      access: redis
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              access: redis
+# apply
+
+# Respuesta correcta
+# Deploy
+# kubectl create deployment redis --image=redis:alpine --replicas=1
+# Expose it
+# kubectl expose deployment redis --name=redis --port=6379 --target-port=6379
+# Ingress
+# apiVersion: networking.k8s.io/v1
+# kind: NetworkPolicy
+# metadata:
+#   name: redis-access
+#   namespace: default
+# spec:
+#   podSelector:
+#     matchLabels:
+#        app: redis
+#   policyTypes:
+#   - Ingress
+#   ingress:
+#   - from:
+#     - podSelector:
+#         matchLabels:
+#           access: redis
+#     ports:
+#      - protocol: TCP
+#        port: 6379
+
+# ============ 14 ============
+# Create a Pod called sega with two containers:
+# Container 1: Name tails with image busybox and command: sleep 3600.
+# Container 2: Name sonic with image nginx and Environment variable: NGINX_PORT with the value 8080.
+
+# Container Sonic has the correct ENV name
+# Container Sonic has the correct ENV value
+# Container tails created correctly?
+
+# vim 14-multipod.yml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: sega
+spec:
+  containers:
+  - name: tails
+    image: busybox
+    command: ["/bin/sh"]
+    args: ["-c", "sleep 3600"]
+
+  - name: sonic
+    image: nginx
+    env:
+    - name: NGINX_PORT
+      value: "8080"
+
+# apply
+
+
+# Resultado Final
+75%
+Your score
+Pass Percentage - 66%
