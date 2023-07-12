@@ -1,0 +1,352 @@
+# ==== "KodeKloud CKAD Mock Exam - Part 2! ====
+
+Mock Exam 2
+
+# export dry="-o yaml --dry-run=client"
+
+# ============ 1 ============
+# Create a deployment called my-webapp with image: nginx, label tier:frontend and 2 replicas.
+# Expose the deployment as a NodePort service with name front-end-service , port: 80 and NodePort: 30083
+
+# Deployment my-webapp created?
+# image: nginx
+# Replicas = 2 ?
+# service front-end-service created?
+# service Type created correctly?
+# Correct node Port used?
+
+k create deployment my-webapp --image=nginx --replicas=2 -o yaml --dry-run=client > 1-deploy.yml
+
+# Vim
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    tier: frontend
+  name: my-webapp
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      tier: frontend
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        tier: frontend
+    spec:
+      containers:
+      - image: nginx
+        name: nginx
+        resources: {}
+status: {}
+
+# Mi Respueta mala 1
+# kubectl expose deployment my-webapp --port=80 --target-port=30083
+# Mi Respueta mala 2
+# k create service nodeport front-end-service --tcp=80:30083 $dry > 1-service.yml
+
+# Respuesta correcta
+kubectl expose deployment my-webapp --name front-end-service --type NodePort --port 80 --dry-run=client -oyaml > front-end-service.yaml
+
+# vim
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  labels:
+    tier: frontend
+  name: front-end-service
+spec:
+  ports:
+  - name: front-end-service
+    port: 80
+    protocol: TCP
+    targetPort: 30083
+  selector:
+    tier: frontend
+  type: NodePort
+status:
+  loadBalancer: {}
+
+# ============ 2 ============
+# Add a taint to the node node01 of the cluster. Use the specification below:
+
+# key: app_type, value: alpha and effect: NoSchedule
+# Create a pod called alpha, image: redis with toleration to node01.
+# node01 with the correct taint?
+# Pod alpha has the correct toleration?
+
+kubectl taint nodes node01 app_type=alpha:NoSchedule
+k run alpha --image=redis $dry > 2-pod.yml
+
+# vim
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: alpha
+  name: alpha
+spec:
+  containers:
+  - image: redis
+    name: alpha
+    resources: {}
+  tolerations:
+  - key: "app_type"
+    operator: "Equal"
+    value: "alpha"
+    effect: "NoSchedule"
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+status: {}
+# apply
+
+
+# ============ 3 ============
+
+# Apply a label app_type=beta to node controlplane.
+# Create a new deployment called beta-apps with image: nginx and replicas: 3.
+# Set Node Affinity to the deployment to place the PODs on controlplane only.
+
+# NodeAffinity: requiredDuringSchedulingIgnoredDuringExecution
+# controlplane has the correct labels?
+# Deployment beta-apps: NodeAffinity set to requiredDuringSchedulingIgnoredDuringExecution ?
+# Deployment beta-apps has correct Key for NodeAffinity?
+# Deployment beta-apps has correct Value for NodeAffinity?
+# Deployment beta-apps has pods running only on controlplane?
+# Deployment beta-apps has 3 pods running?
+
+kubectl label node controlplane app_type=beta
+
+k create deployment beta-apps --image=nginx --replicas=3 $dry > 3-deploy.yml
+
+# Vim
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: beta-apps
+  name: beta-apps
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: beta-apps
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: beta-apps
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: app_type
+                operator: In
+                values:
+                - beta
+      containers:
+      - image: nginx
+        name: nginx
+        resources: {}
+status: {}
+
+
+# ============ 4 ============
+# Create a new Ingress Resource for the service my-video-service
+# to be made available at the URL: http://ckad-mock-exam-solution.com:30093/video.
+
+# To create an ingress resource, the following details are: -
+# annotation: nginx.ingress.kubernetes.io/rewrite-target: /
+# host: ckad-mock-exam-solution.com
+# path: /video
+# Once set up, the curl test of the URL from the nodes should be successful: HTTP 200
+# http://ckad-mock-exam-solution.com:30093/video accessible?
+
+k get svc
+k create ingress my-video-service-ingress --rule="ckad-mock-exam-solution.com/video=my-video-service:8080" $dry > 4-ingress.yml
+
+# Respuesta correcta Segun
+# kubectl create ingress ingress --rule="ckad-mock-exam-solution.com/video*=my-video-service:8080" --dry-run=client -oyaml > ingress.yaml
+
+
+# ============ 5 ============
+# We have deployed a new pod called pod-with-rprobe. This Pod has an initial delay before it is Ready.
+# Update the newly created pod pod-with-rprobe with a readinessProbe using the given spec
+
+# httpGet path: /ready
+# httpGet port: 8080
+# readinessProbe with the correct httpGet path?
+# readinessProbe with the correct httpGet port?
+
+k get pod/pod-with-rprobe -o yaml > 5-pod.yml
+
+spec:
+  containers:
+  - env:
+    - name: APP_START_DELAY
+      value: "180"
+    image: kodekloud/webapp-delayed-start
+    imagePullPolicy: Always
+    name: pod-with-rprobe
+    # Added
+    readinessProbe:
+      httpGet:
+        path: /ready
+        port: 8080
+    # Added
+
+
+# ============ 6 ============
+# Create a new pod called nginx1401 in the default namespace with the image nginx.
+# Add a livenessProbe to the container to restart it if the command ls /var/www/html/probe fails.
+# This check should start after a delay of 10 seconds and run every 60 seconds.
+
+# You may delete and recreate the object. Ignore the warnings from the probe.
+# Pod created correctly with the livenessProbe?
+
+k run nginx1401 --image=nginx $dry
+
+# vim 6-pod.yml
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: nginx1401
+  name: nginx1401
+spec:
+  containers:
+  - image: nginx
+    name: nginx1401
+    resources: {}
+    livenessProbe:
+      exec:
+        command:
+        - ls
+        - /var/www/html/probe
+      initialDelaySeconds: 10
+      periodSeconds: 60
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+status: {}
+
+
+# ============ 7 ============
+# Create a job called whalesay with image docker/whalesay and command "cowsay I am going to ace CKAD!".
+# completions: 10
+# backoffLimit: 6
+# restartPolicy: Never
+
+# This simple job runs the popular cowsay game that was modifed by docker…
+# Job "whalesay" uses correct image?
+# Job "whalesay" configured with completions = 10?
+# Job "whalesay" with backoffLimit = 6
+# Job run's the command "cowsay I am going to ace CKAD!"?
+# Job "whalesay" completed successfully?
+
+kubectl create job whalesay --image=docker/whalesay $dry
+
+# vim 7-job.yml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  creationTimestamp: null
+  name: whalesay
+spec:
+  completions: 10
+  backoffLimit: 6
+  template:
+    metadata:
+      creationTimestamp: null
+    spec:
+      containers:
+      - image: docker/whalesay
+        name: whalesay
+        command: ["/bin/sh"]
+        args: ["-c", "cowsay I am going to ace CKAD!"]
+        resources: {}
+      restartPolicy: Never
+status: {}
+
+
+# ============ 8 ============
+# Create a pod called multi-pod with two containers.
+
+# Container 1:
+# name: jupiter, image: nginx
+
+# Container 2:
+# name: europa, image: busybox
+# command: sleep 4800
+
+# Environment Variables:
+# Container 1:
+# type: planet
+# Container 2:
+# type: moon
+
+# Pod Name: multi-pod
+# Container 1: jupiter
+# Container 2: europa
+# Container europa commands set correctly?
+# Container 1 Environment Value Set
+# Container 2 Environment Value Set
+
+# vim 8-multipod.yml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: multi-pod
+spec:
+  restartPolicy: Never
+
+  containers:
+  - name: jupiter
+    image: nginx
+    env:
+    - name: type
+      value: "planet"
+
+  - name: europa
+    image: busybox
+    command: ["/bin/sh"]
+    args: ["-c", "sleep 4800"]
+    env:
+    - name: type
+      value: "moon"
+
+
+# ============ 9 ============
+# Create a PersistentVolume called custom-volume with size: 50MiB
+# reclaim policy:retain,
+# Access Modes: ReadWriteMany
+# hostPath: /opt/data
+
+# PV custom-volume created?
+# custom-volume uses the correct access mode?
+# PV custom-volume has the correct storage capacity?
+# PV custom-volume has the correct host path?
+
+# vim 9-pv.yml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: custom-volume
+spec:
+  capacity:
+    storage: 50Mi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  hostPath:
+    path: "/opt/data"
